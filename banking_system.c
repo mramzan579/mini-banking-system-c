@@ -1,38 +1,35 @@
 /*
  * banking_system.c
  * Mini Banking System
- * Set up the project structure, define the Account struct,
- * and build the main menu system.
+ * Add the create_account() function so the user can
+ * open a new bank account with number, name, type, and balance.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* ── Constants ──────────────────────────────────────────────── */
-#define MAX_ACCOUNTS  50     /* maximum number of accounts allowed */
-#define NAME_LEN      50     /* maximum length of account holder   */
-#define TYPE_LEN      20     /* maximum length of account type     */
-#define FILE_NAME     "accounts.txt"   /* output file name         */
+// Constants
+#define MAX_ACCOUNTS  50
+#define NAME_LEN      50
+#define TYPE_LEN      20
+#define FILE_NAME     "accounts.txt"
 
-/* ── Account struct ─────────────────────────────────────────── */
-/* Groups all information about one bank account in one unit.
-   This is the core data structure of the entire program. */
+// Account struct 
 struct Account {
-    int   accountNumber;     /* unique account identifier          */
-    char  name[NAME_LEN];    /* account holder full name           */
-    char  type[TYPE_LEN];    /* Savings or Current                 */
-    float balance;           /* current account balance            */
+    int   accountNumber;
+    char  name[NAME_LEN];
+    char  type[TYPE_LEN];
+    float balance;
 };
 
-/* ── Global account list ────────────────────────────────────── */
-struct Account accounts[MAX_ACCOUNTS];  /* holds all accounts     */
-int account_count = 0;                  /* how many are stored    */
+//Global account list
+struct Account accounts[MAX_ACCOUNTS];
+int account_count = 0;
 
 /* ================================================================
    clear_input_buffer()
    Drains leftover characters from stdin after every scanf.
-   Prevents input bugs when switching between numbers and strings.
 ================================================================ */
 void clear_input_buffer(void)
 {
@@ -44,7 +41,6 @@ void clear_input_buffer(void)
 /* ================================================================
    show_menu()
    Prints the main menu options to the console.
-   Called at the start of every loop in main().
 ================================================================ */
 void show_menu(void)
 {
@@ -63,7 +59,86 @@ void show_menu(void)
     printf("  Enter your choice: ");
 }
 
-/* ── Main ───────────────────────────────────────────────────── */
+/* ================================================================
+   create_account()
+   Creates a new bank account and adds it to the array.
+   Reads account number, holder name, account type,
+   and opening balance from the user.
+   Validates:
+     — account number must be a positive number
+     — account number must not already exist
+     — opening balance cannot be negative
+================================================================ */
+void create_account(void)
+{
+    int   i;
+    int   new_number;
+    float opening_balance;
+
+    /* Stop if the account list is full */
+    if (account_count >= MAX_ACCOUNTS) {
+        printf("\n  Account limit reached! Cannot create more accounts.\n");
+        return;
+    }
+
+    printf("\n--- Create New Account ---\n");
+
+    /* Read and validate account number */
+    printf("  Enter account number     : ");
+    scanf("%d", &new_number);
+    clear_input_buffer();
+
+    /* Account number must be a positive integer */
+    if (new_number <= 0) {
+        printf("\n  Invalid! Account number must be a positive number.\n");
+        return;
+    }
+
+    /* Check for duplicate account number */
+    for (i = 0; i < account_count; i++) {
+        if (accounts[i].accountNumber == new_number) {
+            printf("\n  Account %d already exists!\n", new_number);
+            return;
+        }
+    }
+
+    /* Save the account number — it passed all checks */
+    accounts[account_count].accountNumber = new_number;
+
+    /* Read account holder name */
+    printf("  Enter account holder name : ");
+    fgets(accounts[account_count].name, NAME_LEN, stdin);
+    accounts[account_count].name[strcspn(accounts[account_count].name, "\n")] = '\0';
+
+    /* Read account type — Savings or Current */
+    printf("  Account type (Savings / Current) : ");
+    fgets(accounts[account_count].type, TYPE_LEN, stdin);
+    accounts[account_count].type[strcspn(accounts[account_count].type, "\n")] = '\0';
+
+    /* Read and validate opening balance */
+    printf("  Enter opening balance    : ");
+    scanf("%f", &opening_balance);
+    clear_input_buffer();
+
+    /* Balance cannot be negative */
+    if (opening_balance < 0) {
+        printf("\n  Invalid! Opening balance cannot be negative.\n");
+        return;
+    }
+
+    /* Save balance and register the account */
+    accounts[account_count].balance = opening_balance;
+    account_count++;
+
+    printf("\n  Account created successfully!\n");
+    printf("  Account Number : %d\n", new_number);
+    printf("  Account Holder : %s\n", accounts[account_count - 1].name);
+    printf("  Account Type   : %s\n", accounts[account_count - 1].type);
+    printf("  Opening Balance: %.2f\n", opening_balance);
+    printf("  Total accounts : %d\n", account_count);
+}
+
+//─ Main
 int main(void)
 {
     int choice;
@@ -76,7 +151,7 @@ int main(void)
     printf("  Maximum accounts: %d\n", MAX_ACCOUNTS);
     printf("========================================\n");
 
-    /* Main loop — keeps running until user picks Exit */
+    /* Main loop */
     do {
         show_menu();
         scanf("%d", &choice);
@@ -84,7 +159,7 @@ int main(void)
 
         switch (choice) {
             case 1:
-                printf("\n  [Coming soon] Create Account\n");
+                create_account();
                 break;
             case 2:
                 printf("\n  [Coming soon] View All Accounts\n");
