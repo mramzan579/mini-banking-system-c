@@ -1,21 +1,21 @@
 /*
  * banking_system.c
- * Mini Banking System
- * Add view_accounts() to list all accounts in a table
- * and search_account() to find one account by number.
+ * Mini Banking System 
+ * Add deposit_money() and withdraw_money() so the user
+ * can add or remove funds from any account.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-//Constants 
+//Constants
 #define MAX_ACCOUNTS  50
 #define NAME_LEN      50
 #define TYPE_LEN      20
 #define FILE_NAME     "accounts.txt"
 
-//Account struct 
+//Account struct
 struct Account {
     int   accountNumber;
     char  name[NAME_LEN];
@@ -23,7 +23,7 @@ struct Account {
     float balance;
 };
 
-// Global account list 
+/* ── Global account list 
 struct Account accounts[MAX_ACCOUNTS];
 int account_count = 0;
 
@@ -62,8 +62,6 @@ void show_menu(void)
 /* ================================================================
    create_account()
    Creates a new bank account and adds it to the array.
-   Validates account number, checks duplicates, and
-   ensures opening balance is not negative.
 ================================================================ */
 void create_account(void)
 {
@@ -127,8 +125,6 @@ void create_account(void)
 /* ================================================================
    view_accounts()
    Prints all accounts in a clean formatted table.
-   Shows account number, holder name, type, and balance.
-   Uses column formatting to keep the table aligned.
 ================================================================ */
 void view_accounts(void)
 {
@@ -142,13 +138,10 @@ void view_accounts(void)
     }
 
     printf("  Total accounts: %d\n\n", account_count);
-
-    /* Print table header with aligned columns */
     printf("  %-10s %-25s %-10s %s\n",
            "Acc No.", "Name", "Type", "Balance");
     printf("  --------------------------------------------------------\n");
 
-    /* Print one row per account */
     for (i = 0; i < account_count; i++) {
         printf("  %-10d %-25s %-10s %.2f\n",
                accounts[i].accountNumber,
@@ -163,8 +156,6 @@ void view_accounts(void)
 /* ================================================================
    search_account()
    Searches for a single account by its account number.
-   Loops through the array and compares each account number.
-   Prints full account details if a match is found.
 ================================================================ */
 void search_account(void)
 {
@@ -183,7 +174,6 @@ void search_account(void)
     scanf("%d", &search_number);
     clear_input_buffer();
 
-    /* Loop through all accounts and compare numbers */
     for (i = 0; i < account_count; i++) {
         if (accounts[i].accountNumber == search_number) {
             printf("\n  Account found:\n");
@@ -194,7 +184,7 @@ void search_account(void)
             printf("    Balance        : %.2f\n", accounts[i].balance);
             printf("  ----------------------------------------\n");
             found = 1;
-            break;   /* account numbers are unique — stop after first match */
+            break;
         }
     }
 
@@ -203,7 +193,135 @@ void search_account(void)
     }
 }
 
-// Main
+/* ================================================================
+   deposit_money()
+   Finds an account by number and adds the deposit amount
+   directly to the current balance using +=
+   Validates:
+     — deposit amount must be greater than zero
+     — account must exist before depositing
+================================================================ */
+void deposit_money(void)
+{
+    int   i;
+    int   acc_number;
+    float amount;
+    int   found = 0;
+
+    printf("\n--- Deposit Money ---\n");
+
+    if (account_count == 0) {
+        printf("  No accounts found. Create an account first.\n");
+        return;
+    }
+
+    printf("  Enter account number : ");
+    scanf("%d", &acc_number);
+    clear_input_buffer();
+
+    printf("  Enter deposit amount : ");
+    scanf("%f", &amount);
+    clear_input_buffer();
+
+    /* Deposit amount must be greater than zero */
+    if (amount <= 0) {
+        printf("\n  Invalid! Deposit amount must be greater than zero.\n");
+        return;
+    }
+
+    /* Find the account and update its balance */
+    for (i = 0; i < account_count; i++) {
+        if (accounts[i].accountNumber == acc_number) {
+
+            accounts[i].balance += amount;   /* add to existing balance */
+
+            printf("\n  Deposit successful!\n");
+            printf("  ----------------------------------------\n");
+            printf("  Account Number : %d\n",   accounts[i].accountNumber);
+            printf("  Account Holder : %s\n",   accounts[i].name);
+            printf("  Amount Deposited: %.2f\n", amount);
+            printf("  New Balance    : %.2f\n", accounts[i].balance);
+            printf("  ----------------------------------------\n");
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("\n  Account %d not found.\n", acc_number);
+    }
+}
+
+/* ================================================================
+   withdraw_money()
+   Finds an account by number and subtracts the withdrawal
+   amount from the balance using -=
+   Validates:
+     — withdrawal amount must be greater than zero
+     — account must have sufficient balance before withdrawing
+     — account must exist
+================================================================ */
+void withdraw_money(void)
+{
+    int   i;
+    int   acc_number;
+    float amount;
+    int   found = 0;
+
+    printf("\n--- Withdraw Money ---\n");
+
+    if (account_count == 0) {
+        printf("  No accounts found. Create an account first.\n");
+        return;
+    }
+
+    printf("  Enter account number    : ");
+    scanf("%d", &acc_number);
+    clear_input_buffer();
+
+    printf("  Enter withdrawal amount : ");
+    scanf("%f", &amount);
+    clear_input_buffer();
+
+    /* Withdrawal amount must be greater than zero */
+    if (amount <= 0) {
+        printf("\n  Invalid! Withdrawal amount must be greater than zero.\n");
+        return;
+    }
+
+    /* Find the account */
+    for (i = 0; i < account_count; i++) {
+        if (accounts[i].accountNumber == acc_number) {
+
+            /* Check sufficient balance BEFORE subtracting */
+            if (amount > accounts[i].balance) {
+                printf("\n  Insufficient balance!\n");
+                printf("  ----------------------------------------\n");
+                printf("  Available Balance : %.2f\n", accounts[i].balance);
+                printf("  Requested Amount  : %.2f\n", amount);
+                printf("  ----------------------------------------\n");
+            } else {
+                accounts[i].balance -= amount;   /* subtract from balance */
+
+                printf("\n  Withdrawal successful!\n");
+                printf("  ----------------------------------------\n");
+                printf("  Account Number  : %d\n",   accounts[i].accountNumber);
+                printf("  Account Holder  : %s\n",   accounts[i].name);
+                printf("  Amount Withdrawn: %.2f\n", amount);
+                printf("  New Balance     : %.2f\n", accounts[i].balance);
+                printf("  ----------------------------------------\n");
+            }
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("\n  Account %d not found.\n", acc_number);
+    }
+}
+
+/* ── Main ───────────────────────────────────────────────────── */
 int main(void)
 {
     int choice;
@@ -223,15 +341,11 @@ int main(void)
         clear_input_buffer();
 
         switch (choice) {
-            case 1: create_account(); break;
-            case 2: view_accounts();  break;
-            case 3: search_account(); break;
-            case 4:
-                printf("\n  [Coming soon] Deposit Money\n");
-                break;
-            case 5:
-                printf("\n  [Coming soon] Withdraw Money\n");
-                break;
+            case 1: create_account();  break;
+            case 2: view_accounts();   break;
+            case 3: search_account();  break;
+            case 4: deposit_money();   break;
+            case 5: withdraw_money();  break;
             case 6:
                 printf("\n  [Coming soon] Delete Account\n");
                 break;
