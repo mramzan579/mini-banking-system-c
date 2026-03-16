@@ -1,21 +1,21 @@
 /*
  * banking_system.c
  * Mini Banking System
- * Add the create_account() function so the user can
- * open a new bank account with number, name, type, and balance.
+ * Add view_accounts() to list all accounts in a table
+ * and search_account() to find one account by number.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-// Constants
+//Constants 
 #define MAX_ACCOUNTS  50
 #define NAME_LEN      50
 #define TYPE_LEN      20
 #define FILE_NAME     "accounts.txt"
 
-// Account struct 
+//Account struct 
 struct Account {
     int   accountNumber;
     char  name[NAME_LEN];
@@ -23,7 +23,7 @@ struct Account {
     float balance;
 };
 
-//Global account list
+// Global account list 
 struct Account accounts[MAX_ACCOUNTS];
 int account_count = 0;
 
@@ -62,12 +62,8 @@ void show_menu(void)
 /* ================================================================
    create_account()
    Creates a new bank account and adds it to the array.
-   Reads account number, holder name, account type,
-   and opening balance from the user.
-   Validates:
-     — account number must be a positive number
-     — account number must not already exist
-     — opening balance cannot be negative
+   Validates account number, checks duplicates, and
+   ensures opening balance is not negative.
 ================================================================ */
 void create_account(void)
 {
@@ -75,7 +71,6 @@ void create_account(void)
     int   new_number;
     float opening_balance;
 
-    /* Stop if the account list is full */
     if (account_count >= MAX_ACCOUNTS) {
         printf("\n  Account limit reached! Cannot create more accounts.\n");
         return;
@@ -83,18 +78,15 @@ void create_account(void)
 
     printf("\n--- Create New Account ---\n");
 
-    /* Read and validate account number */
     printf("  Enter account number     : ");
     scanf("%d", &new_number);
     clear_input_buffer();
 
-    /* Account number must be a positive integer */
     if (new_number <= 0) {
         printf("\n  Invalid! Account number must be a positive number.\n");
         return;
     }
 
-    /* Check for duplicate account number */
     for (i = 0; i < account_count; i++) {
         if (accounts[i].accountNumber == new_number) {
             printf("\n  Account %d already exists!\n", new_number);
@@ -102,43 +94,116 @@ void create_account(void)
         }
     }
 
-    /* Save the account number — it passed all checks */
     accounts[account_count].accountNumber = new_number;
 
-    /* Read account holder name */
     printf("  Enter account holder name : ");
     fgets(accounts[account_count].name, NAME_LEN, stdin);
     accounts[account_count].name[strcspn(accounts[account_count].name, "\n")] = '\0';
 
-    /* Read account type — Savings or Current */
     printf("  Account type (Savings / Current) : ");
     fgets(accounts[account_count].type, TYPE_LEN, stdin);
     accounts[account_count].type[strcspn(accounts[account_count].type, "\n")] = '\0';
 
-    /* Read and validate opening balance */
     printf("  Enter opening balance    : ");
     scanf("%f", &opening_balance);
     clear_input_buffer();
 
-    /* Balance cannot be negative */
     if (opening_balance < 0) {
         printf("\n  Invalid! Opening balance cannot be negative.\n");
         return;
     }
 
-    /* Save balance and register the account */
     accounts[account_count].balance = opening_balance;
     account_count++;
 
     printf("\n  Account created successfully!\n");
-    printf("  Account Number : %d\n", new_number);
-    printf("  Account Holder : %s\n", accounts[account_count - 1].name);
-    printf("  Account Type   : %s\n", accounts[account_count - 1].type);
+    printf("  Account Number : %d\n",   new_number);
+    printf("  Account Holder : %s\n",   accounts[account_count - 1].name);
+    printf("  Account Type   : %s\n",   accounts[account_count - 1].type);
     printf("  Opening Balance: %.2f\n", opening_balance);
-    printf("  Total accounts : %d\n", account_count);
+    printf("  Total accounts : %d\n",   account_count);
 }
 
-//─ Main
+/* ================================================================
+   view_accounts()
+   Prints all accounts in a clean formatted table.
+   Shows account number, holder name, type, and balance.
+   Uses column formatting to keep the table aligned.
+================================================================ */
+void view_accounts(void)
+{
+    int i;
+
+    printf("\n--- All Accounts ---\n");
+
+    if (account_count == 0) {
+        printf("  No accounts found. Create an account first.\n");
+        return;
+    }
+
+    printf("  Total accounts: %d\n\n", account_count);
+
+    /* Print table header with aligned columns */
+    printf("  %-10s %-25s %-10s %s\n",
+           "Acc No.", "Name", "Type", "Balance");
+    printf("  --------------------------------------------------------\n");
+
+    /* Print one row per account */
+    for (i = 0; i < account_count; i++) {
+        printf("  %-10d %-25s %-10s %.2f\n",
+               accounts[i].accountNumber,
+               accounts[i].name,
+               accounts[i].type,
+               accounts[i].balance);
+    }
+
+    printf("  --------------------------------------------------------\n");
+}
+
+/* ================================================================
+   search_account()
+   Searches for a single account by its account number.
+   Loops through the array and compares each account number.
+   Prints full account details if a match is found.
+================================================================ */
+void search_account(void)
+{
+    int i;
+    int search_number;
+    int found = 0;
+
+    printf("\n--- Search Account ---\n");
+
+    if (account_count == 0) {
+        printf("  No accounts to search. Create an account first.\n");
+        return;
+    }
+
+    printf("  Enter account number to search: ");
+    scanf("%d", &search_number);
+    clear_input_buffer();
+
+    /* Loop through all accounts and compare numbers */
+    for (i = 0; i < account_count; i++) {
+        if (accounts[i].accountNumber == search_number) {
+            printf("\n  Account found:\n");
+            printf("  ----------------------------------------\n");
+            printf("    Account Number : %d\n",   accounts[i].accountNumber);
+            printf("    Name           : %s\n",   accounts[i].name);
+            printf("    Type           : %s\n",   accounts[i].type);
+            printf("    Balance        : %.2f\n", accounts[i].balance);
+            printf("  ----------------------------------------\n");
+            found = 1;
+            break;   /* account numbers are unique — stop after first match */
+        }
+    }
+
+    if (!found) {
+        printf("\n  Account %d not found.\n", search_number);
+    }
+}
+
+// Main
 int main(void)
 {
     int choice;
@@ -158,15 +223,9 @@ int main(void)
         clear_input_buffer();
 
         switch (choice) {
-            case 1:
-                create_account();
-                break;
-            case 2:
-                printf("\n  [Coming soon] View All Accounts\n");
-                break;
-            case 3:
-                printf("\n  [Coming soon] Search Account\n");
-                break;
+            case 1: create_account(); break;
+            case 2: view_accounts();  break;
+            case 3: search_account(); break;
             case 4:
                 printf("\n  [Coming soon] Deposit Money\n");
                 break;
