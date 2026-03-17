@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* ── Constants ─────────── */
+/* ── Constants  */
 #define MAX_ACCOUNTS  50
 #define NAME_LEN      50
 #define TYPE_LEN      20
@@ -21,7 +21,7 @@
 #define MIN_BALANCE   0.0f    /* minimum allowed opening balance  */
 #define MIN_AMOUNT    0.01f   /* minimum allowed transaction amount */
 
-/* ── Account struct ─────────────── */
+/* ── Account struct*/
 struct Account {
     int   accountNumber;
     char  name[NAME_LEN];
@@ -29,7 +29,7 @@ struct Account {
     float balance;
 };
 
-/* ── Global account list ────────── */
+/* ── Global account list */
 struct Account accounts[MAX_ACCOUNTS];
 int account_count = 0;
 
@@ -145,7 +145,7 @@ void create_account(void)
         return;
     }
 
-    /* Read and validate opening balance */
+    //Read and validate opening balance
     printf("  Enter opening balance    : ");
     if (scanf("%f", &opening_balance) != 1 || opening_balance < MIN_BALANCE) {
         clear_input_buffer();
