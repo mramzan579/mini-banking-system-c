@@ -1,21 +1,27 @@
 /*
  * banking_system.c
- * Mini Banking System 
- * Add delete_account() to remove a record and
- * save_accounts() to write all records to a file.
+ *
+ * A console-based Mini Banking System written in C.
+ * Create accounts, deposit, withdraw, search, delete,
+ * and save records to a file.
+ *
+ * Compile : gcc banking_system.c -o banking
+ * Run     : ./banking
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-// Constants
+/* ── Constants ─────────── */
 #define MAX_ACCOUNTS  50
 #define NAME_LEN      50
 #define TYPE_LEN      20
 #define FILE_NAME     "accounts.txt"
+#define MIN_BALANCE   0.0f    /* minimum allowed opening balance  */
+#define MIN_AMOUNT    0.01f   /* minimum allowed transaction amount */
 
-// Account struct
+/* ── Account struct ─────────────── */
 struct Account {
     int   accountNumber;
     char  name[NAME_LEN];
@@ -23,13 +29,14 @@ struct Account {
     float balance;
 };
 
-//Global account list 
+/* ── Global account list ────────── */
 struct Account accounts[MAX_ACCOUNTS];
 int account_count = 0;
 
 /* ================================================================
    clear_input_buffer()
    Drains leftover characters from stdin after every scanf.
+   Prevents input bugs when switching between numbers and strings.
 ================================================================ */
 void clear_input_buffer(void)
 {
@@ -41,6 +48,7 @@ void clear_input_buffer(void)
 /* ================================================================
    show_menu()
    Prints the main menu options to the console.
+   Called at the start of every loop in main().
 ================================================================ */
 void show_menu(void)
 {
@@ -60,8 +68,30 @@ void show_menu(void)
 }
 
 /* ================================================================
+   is_valid_type()
+   Checks if the account type entered is either
+   "Savings" or "Current" — case insensitive check
+   using strcmp on both options.
+   Returns 1 if valid, 0 if not.
+================================================================ */
+int is_valid_type(const char *type)
+{
+    if (strcmp(type, "Savings") == 0 || strcmp(type, "savings") == 0 ||
+        strcmp(type, "Current") == 0 || strcmp(type, "current") == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+/* ================================================================
    create_account()
    Creates a new bank account and adds it to the array.
+   Improved validation:
+     — account number must be positive
+     — no duplicate account numbers
+     — name cannot be empty
+     — type must be Savings or Current
+     — opening balance cannot be negative
 ================================================================ */
 void create_account(void)
 {
@@ -76,15 +106,16 @@ void create_account(void)
 
     printf("\n--- Create New Account ---\n");
 
+    /* Read and validate account number */
     printf("  Enter account number     : ");
-    scanf("%d", &new_number);
-    clear_input_buffer();
-
-    if (new_number <= 0) {
+    if (scanf("%d", &new_number) != 1 || new_number <= 0) {
+        clear_input_buffer();
         printf("\n  Invalid! Account number must be a positive number.\n");
         return;
     }
+    clear_input_buffer();
 
+    /* Check for duplicate */
     for (i = 0; i < account_count; i++) {
         if (accounts[i].accountNumber == new_number) {
             printf("\n  Account %d already exists!\n", new_number);
@@ -94,37 +125,52 @@ void create_account(void)
 
     accounts[account_count].accountNumber = new_number;
 
+    /* Read and validate name — cannot be empty */
     printf("  Enter account holder name : ");
     fgets(accounts[account_count].name, NAME_LEN, stdin);
     accounts[account_count].name[strcspn(accounts[account_count].name, "\n")] = '\0';
 
+    if (strlen(accounts[account_count].name) == 0) {
+        printf("\n  Invalid! Name cannot be empty.\n");
+        return;
+    }
+
+    /* Read and validate account type */
     printf("  Account type (Savings / Current) : ");
     fgets(accounts[account_count].type, TYPE_LEN, stdin);
     accounts[account_count].type[strcspn(accounts[account_count].type, "\n")] = '\0';
 
-    printf("  Enter opening balance    : ");
-    scanf("%f", &opening_balance);
-    clear_input_buffer();
+    if (!is_valid_type(accounts[account_count].type)) {
+        printf("\n  Invalid type! Please enter Savings or Current.\n");
+        return;
+    }
 
-    if (opening_balance < 0) {
+    /* Read and validate opening balance */
+    printf("  Enter opening balance    : ");
+    if (scanf("%f", &opening_balance) != 1 || opening_balance < MIN_BALANCE) {
+        clear_input_buffer();
         printf("\n  Invalid! Opening balance cannot be negative.\n");
         return;
     }
+    clear_input_buffer();
 
     accounts[account_count].balance = opening_balance;
     account_count++;
 
     printf("\n  Account created successfully!\n");
+    printf("  ----------------------------------------\n");
     printf("  Account Number : %d\n",   new_number);
     printf("  Account Holder : %s\n",   accounts[account_count - 1].name);
     printf("  Account Type   : %s\n",   accounts[account_count - 1].type);
     printf("  Opening Balance: %.2f\n", opening_balance);
     printf("  Total accounts : %d\n",   account_count);
+    printf("  ----------------------------------------\n");
 }
 
 /* ================================================================
    view_accounts()
    Prints all accounts in a clean formatted table.
+   Shows account number, name, type, and balance.
 ================================================================ */
 void view_accounts(void)
 {
@@ -156,6 +202,7 @@ void view_accounts(void)
 /* ================================================================
    search_account()
    Searches for a single account by its account number.
+   Prints full account details if found.
 ================================================================ */
 void search_account(void)
 {
@@ -171,7 +218,11 @@ void search_account(void)
     }
 
     printf("  Enter account number to search: ");
-    scanf("%d", &search_number);
+    if (scanf("%d", &search_number) != 1) {
+        clear_input_buffer();
+        printf("\n  Invalid input! Please enter a number.\n");
+        return;
+    }
     clear_input_buffer();
 
     for (i = 0; i < account_count; i++) {
@@ -195,8 +246,9 @@ void search_account(void)
 
 /* ================================================================
    deposit_money()
-   Finds an account by number and adds the deposit amount
-   to the current balance using +=
+   Finds an account by number and adds the deposit amount.
+   Improved: checks scanf return value for non-numeric input.
+   Minimum deposit is MIN_AMOUNT (0.01).
 ================================================================ */
 void deposit_money(void)
 {
@@ -213,17 +265,20 @@ void deposit_money(void)
     }
 
     printf("  Enter account number : ");
-    scanf("%d", &acc_number);
+    if (scanf("%d", &acc_number) != 1) {
+        clear_input_buffer();
+        printf("\n  Invalid input! Please enter a number.\n");
+        return;
+    }
     clear_input_buffer();
 
     printf("  Enter deposit amount : ");
-    scanf("%f", &amount);
-    clear_input_buffer();
-
-    if (amount <= 0) {
-        printf("\n  Invalid! Deposit amount must be greater than zero.\n");
+    if (scanf("%f", &amount) != 1 || amount < MIN_AMOUNT) {
+        clear_input_buffer();
+        printf("\n  Invalid! Deposit must be at least %.2f.\n", MIN_AMOUNT);
         return;
     }
+    clear_input_buffer();
 
     for (i = 0; i < account_count; i++) {
         if (accounts[i].accountNumber == acc_number) {
@@ -247,8 +302,9 @@ void deposit_money(void)
 
 /* ================================================================
    withdraw_money()
-   Finds an account by number and subtracts the withdrawal
-   amount from the balance using -=
+   Finds an account by number and subtracts the withdrawal.
+   Improved: checks scanf return value for non-numeric input.
+   Minimum withdrawal is MIN_AMOUNT (0.01).
    Checks sufficient balance before withdrawing.
 ================================================================ */
 void withdraw_money(void)
@@ -266,17 +322,20 @@ void withdraw_money(void)
     }
 
     printf("  Enter account number    : ");
-    scanf("%d", &acc_number);
+    if (scanf("%d", &acc_number) != 1) {
+        clear_input_buffer();
+        printf("\n  Invalid input! Please enter a number.\n");
+        return;
+    }
     clear_input_buffer();
 
     printf("  Enter withdrawal amount : ");
-    scanf("%f", &amount);
-    clear_input_buffer();
-
-    if (amount <= 0) {
-        printf("\n  Invalid! Withdrawal amount must be greater than zero.\n");
+    if (scanf("%f", &amount) != 1 || amount < MIN_AMOUNT) {
+        clear_input_buffer();
+        printf("\n  Invalid! Withdrawal must be at least %.2f.\n", MIN_AMOUNT);
         return;
     }
+    clear_input_buffer();
 
     for (i = 0; i < account_count; i++) {
         if (accounts[i].accountNumber == acc_number) {
@@ -309,16 +368,15 @@ void withdraw_money(void)
 /* ================================================================
    delete_account()
    Deletes a bank account by its account number.
-   Shows the full account list first so the user can
-   confirm which account number to delete.
-   Uses the shift technique to fill the gap after deletion —
-   every account after the deleted one moves one step backward.
+   Shows all accounts first, asks for confirmation
+   before deleting, then uses shift technique.
 ================================================================ */
 void delete_account(void)
 {
-    int i, j;
-    int delete_number;
-    int found = 0;
+    int  i, j;
+    int  delete_number;
+    int  found = 0;
+    char confirm;
 
     printf("\n--- Delete Account ---\n");
 
@@ -327,27 +385,33 @@ void delete_account(void)
         return;
     }
 
-    /* Show all accounts so user knows which number to delete */
     view_accounts();
 
     printf("\n  Enter account number to delete: ");
-    scanf("%d", &delete_number);
+    if (scanf("%d", &delete_number) != 1) {
+        clear_input_buffer();
+        printf("\n  Invalid input! Please enter a number.\n");
+        return;
+    }
     clear_input_buffer();
 
-    /* Find and delete the account with this number */
+    /* Confirmation step — prevents accidental deletion */
+    printf("  Are you sure you want to delete account %d? (Y/N): ",
+           delete_number);
+    scanf(" %c", &confirm);
+    clear_input_buffer();
+
+    if (confirm != 'Y' && confirm != 'y') {
+        printf("\n  Deletion cancelled.\n");
+        return;
+    }
+
     for (i = 0; i < account_count; i++) {
         if (accounts[i].accountNumber == delete_number) {
-
-            /*
-             * Shift technique — move every account after the
-             * deleted one backward by one position.
-             * Closes the gap and keeps the array compact.
-             */
             for (j = i; j < account_count - 1; j++) {
                 accounts[j] = accounts[j + 1];
             }
-
-            account_count--;   /* one less account now */
+            account_count--;
             found = 1;
             break;
         }
@@ -364,9 +428,7 @@ void delete_account(void)
 /* ================================================================
    save_accounts()
    Writes all account records to accounts.txt.
-   Uses fopen to open the file in write mode,
-   fprintf to write each record, and fclose to close it.
-   Always checks if fopen succeeded before writing.
+   Uses fopen, fprintf, and fclose for file operations.
 ================================================================ */
 void save_accounts(void)
 {
@@ -378,22 +440,18 @@ void save_accounts(void)
         return;
     }
 
-    /* Open file in write mode — creates if not exists */
     file = fopen(FILE_NAME, "w");
 
-    /* Always check if the file opened successfully */
     if (file == NULL) {
         printf("\n  Error! Could not open file for writing.\n");
         return;
     }
 
-    /* Write file header */
     fprintf(file, "========================================\n");
     fprintf(file, "       BANK ACCOUNTS RECORD             \n");
     fprintf(file, "========================================\n");
     fprintf(file, "Total Accounts: %d\n\n", account_count);
 
-    /* Write each account record to the file */
     for (i = 0; i < account_count; i++) {
         fprintf(file, "Account %d:\n",              i + 1);
         fprintf(file, "  Account Number : %d\n",   accounts[i].accountNumber);
@@ -403,7 +461,6 @@ void save_accounts(void)
         fprintf(file, "----------------------------------------\n");
     }
 
-    /* Always close the file after writing */
     fclose(file);
 
     printf("\n  All accounts saved to '%s' successfully!\n", FILE_NAME);
@@ -419,7 +476,6 @@ int main(void)
 {
     int choice;
 
-    // Welcome banner 
     printf("========================================\n");
     printf("       MINI BANKING SYSTEM              \n");
     printf("========================================\n");
@@ -427,10 +483,14 @@ int main(void)
     printf("  Maximum accounts: %d\n", MAX_ACCOUNTS);
     printf("========================================\n");
 
-    /* Main loop — keeps running until user picks Exit */
     do {
         show_menu();
-        scanf("%d", &choice);
+
+        if (scanf("%d", &choice) != 1) {
+            clear_input_buffer();
+            printf("\n  Invalid input! Please enter a number.\n");
+            continue;
+        }
         clear_input_buffer();
 
         switch (choice) {
